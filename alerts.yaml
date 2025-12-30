@@ -1,0 +1,37 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fake-infer-alerts
+  namespace: ai-sre
+  labels:
+    release: kps
+spec:
+  groups:
+  - name: fake-infer.sre
+    rules:
+    - alert: FakeInferHighErrorRate
+      expr: |
+        (
+          sum(rate(http_requests_total{job="fake-infer",path="/infer",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{job="fake-infer",path="/infer"}[5m]))
+        ) > 0.05
+      for: 2m
+      labels:
+        severity: page
+      annotations:
+        summary: "fake-infer error rate > 5% (5xx)"
+        description: "Investigate app errors, dependency failures, or overload. Current ratio={{ $value }}."
+
+    - alert: FakeInferHighLatencyP95
+      expr: |
+        histogram_quantile(
+          0.95,
+          sum by (le) (rate(http_request_duration_seconds_bucket{job="fake-infer",path="/infer"}[5m]))
+        ) > 0.30
+      for: 2m
+      labels:
+        severity: page
+      annotations:
+        summary: "fake-infer p95 latency > 300ms"
+        description: "Likely CPU saturation, slow path, or node pressure. Current p95={{ $value }}s."

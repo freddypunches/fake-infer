@@ -1,0 +1,9 @@
+route:
+  receiver: local-webhook
+  matchers:
+    - severity = page
+
+receivers:
+  - name: local-webhook
+    webhook_configs:
+      - url: 'http://alert-webhook.monitoring:8080'

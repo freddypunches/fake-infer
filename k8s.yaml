@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-sre
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fake-infer
+  namespace: ai-sre
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fake-infer
+  template:
+    metadata:
+      labels:
+        app: fake-infer
+    spec:
+      containers:
+      - name: fake-infer
+        image: fake-infer:0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "300m"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fake-infer
+  namespace: ai-sre
+  labels:
+    app: fake-infer
+spec:
+  selector:
+    app: fake-infer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fake-infer
+  namespace: ai-sre
+  labels:
+    release: kps
+spec:
+  namespaceSelector:
+    matchNames: ["ai-sre"]
+  selector:
+    matchLabels:
+      app: fake-infer
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
